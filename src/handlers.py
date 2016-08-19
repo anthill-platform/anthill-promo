@@ -31,4 +31,4 @@ class UsePromoHandler(AuthenticatedHandler):
         except PromoNotFound as e:
             raise HTTPError(404, e.message)
         else:
-            self.write(ujson.dumps(promo_usage))
+            self.dumps(promo_usage)
