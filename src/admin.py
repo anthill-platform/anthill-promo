@@ -10,10 +10,7 @@ from model.promo import PromoError, PromoNotFound
 
 
 class RootAdminController(a.AdminController):
-    def scopes_read(self):
-        return ["promo_admin"]
-
-    def scopes_write(self):
+    def access_scopes(self):
         return ["promo_admin"]
 
     def render(self, data):
@@ -26,10 +23,7 @@ class RootAdminController(a.AdminController):
 
 
 class ContentsController(a.AdminController):
-    def scopes_read(self):
-        return ["promo_admin"]
-
-    def scopes_write(self):
+    def access_scopes(self):
         return ["promo_admin"]
 
     def render(self, data):
@@ -58,10 +52,7 @@ class ContentsController(a.AdminController):
 
 
 class ContentController(a.AdminController):
-    def scopes_read(self):
-        return ["promo_admin"]
-
-    def scopes_write(self):
+    def access_scopes(self):
         return ["promo_admin"]
 
     def render(self, data):
@@ -137,10 +128,7 @@ class ContentController(a.AdminController):
 
 
 class NewContentController(a.AdminController):
-    def scopes_read(self):
-        return ["promo_admin"]
-
-    def scopes_write(self):
+    def access_scopes(self):
         return ["promo_admin"]
 
     def render(self, data):
@@ -181,10 +169,7 @@ class NewContentController(a.AdminController):
 
 
 class PromosController(a.AdminController):
-    def scopes_read(self):
-        return ["promo_admin"]
-
-    def scopes_write(self):
+    def access_scopes(self):
         return ["promo_admin"]
 
     def render(self, data):
@@ -219,10 +204,7 @@ class PromosController(a.AdminController):
 
 
 class NewPromoController(a.AdminController):
-    def scopes_read(self):
-        return ["promo_admin"]
-
-    def scopes_write(self):
+    def access_scopes(self):
         return ["promo_admin"]
 
     def render(self, data):
@@ -287,10 +269,7 @@ class NewPromoController(a.AdminController):
 
 
 class PromoController(a.AdminController):
-    def scopes_read(self):
-        return ["promo_admin"]
-
-    def scopes_write(self):
+    def access_scopes(self):
         return ["promo_admin"]
 
     def render(self, data):
