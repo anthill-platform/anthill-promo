@@ -54,7 +54,7 @@ class PromoServer(common.server.Server):
         return {
             "title": "Promo",
             "description": "Reward users with promo-codes",
-            "icon": "heart"
+            "icon": "gift"
         }
 
 if __name__ == "__main__":

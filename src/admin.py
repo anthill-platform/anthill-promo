@@ -17,7 +17,7 @@ class RootAdminController(a.AdminController):
         return [
             a.links("Promo service", [
                 a.link("contents", "Edit contents", icon="paper-plane"),
-                a.link("promos", "Edit promo codes", icon="bookmark")
+                a.link("promos", "Edit promo codes", icon="gift")
             ])
         ]
 
