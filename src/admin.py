@@ -34,7 +34,7 @@ class ContentsController(a.AdminController):
                 for item in data["items"]
             ]),
             a.links("Navigate", [
-                a.link("index", "Go back"),
+                a.link("index", "Go back", icon="chevron-left"),
                 a.link("new_content", "Create content", icon="plus")
             ])
         ]
@@ -68,7 +68,7 @@ class ContentController(a.AdminController):
                 "delete": a.method("Delete this content", "danger", order=2)
             }, data=data),
             a.links("Navigate", [
-                a.link("contents", "Go back")
+                a.link("contents", "Go back", icon="chevron-left")
             ])
         ]
 
@@ -143,7 +143,7 @@ class NewContentController(a.AdminController):
                 "create": a.method("Create", "primary")
             }, data={"content_json": {}}),
             a.links("Navigate", [
-                a.link("contents", "Go back")
+                a.link("contents", "Go back", icon="chevron-left")
             ])
         ]
 
@@ -181,7 +181,7 @@ class PromosController(a.AdminController):
                 "edit": a.method("Edit", "primary")
             }, data=data),
             a.links("Navigate", [
-                a.link("index", "Go back"),
+                a.link("index", "Go back", icon="chevron-left"),
                 a.link("new_promo", "Create a new promo code", icon="plus")
             ])
         ]
@@ -222,7 +222,7 @@ class NewPromoController(a.AdminController):
                 "create": a.method("Create", "primary")
             }, data=data),
             a.links("Navigate", [
-                a.link("contents", "Go back")
+                a.link("contents", "Go back", icon="chevron-left")
             ])
         ]
 
@@ -290,7 +290,7 @@ class PromoController(a.AdminController):
             a.links("Accounts used this promo code", [a.link(
                 "/profile/profile", "@" + account, account=account) for account in data["usages"]]),
             a.links("Navigate", [
-                a.link("contents", "Go back")
+                a.link("contents", "Go back", icon="chevron-left")
             ])
         ]
 
