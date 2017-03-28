@@ -5,6 +5,8 @@ import tornado.gen
 import json
 import datetime
 
+from common import to_int
+
 from model.content import ContentError, ContentNotFound
 from model.promo import PromoError, PromoNotFound
 
@@ -182,7 +184,8 @@ class PromosController(a.AdminController):
             }, data=data),
             a.links("Navigate", [
                 a.link("index", "Go back", icon="chevron-left"),
-                a.link("new_promo", "Create a new promo code", icon="plus")
+                a.link("new_promo", "Create a new promo code", icon="plus"),
+                a.link("new_promos", "Create multiple promo codes", icon="plus-square")
             ])
         ]
 
@@ -266,6 +269,87 @@ class NewPromoController(a.AdminController):
             "promo",
             message="Promo code has been created",
             promo_id=promo_id)
+
+
+class NewPromosController(a.AdminController):
+    def access_scopes(self):
+        return ["promo_admin"]
+
+    def render(self, data):
+        res = [
+            a.breadcrumbs([
+                a.link("promos", "Promo codes")
+            ], "New promo codes")
+        ]
+
+        result = data.get("result", None)
+
+        if result:
+            res.append(a.form("Generated keys", fields={
+                "result": a.field("Keys", "text", "primary", "non-empty", multiline=20)
+            }, methods={}, data=data))
+        else:
+            res.append(a.form("New promo code", fields={
+                "promo_keys": a.field("Number of keys to generate", "text", "primary", "number"),
+                "promo_amount": a.field("Promo uses amount", "text", "primary", "number"),
+                "promo_expires": a.field("Expire date", "date", "primary", "non-empty"),
+                "promo_contents": a.field("Promo items", "kv", "primary", "non-empty",
+                                          values=data["content_items"])
+            }, methods={
+                "create": a.method("Create", "primary")
+            }, data=data))
+
+        res.append(a.links("Navigate", [
+                a.link("contents", "Go back", icon="chevron-left")
+            ]))
+
+        return res
+
+    @tornado.gen.coroutine
+    def get(self):
+
+        contents = self.application.contents
+        content_items = {item["content_id"]: item["content_name"]
+                         for item in (yield contents.list_contents(self.gamespace))}
+
+        raise a.Return({
+            "promo_keys": "2",
+            "promo_amount": "1",
+            "content_items": content_items,
+            "promo_expires": str(datetime.datetime.now() + datetime.timedelta(days=30))
+        })
+
+    @tornado.gen.coroutine
+    def create(self, promo_keys, promo_amount, promo_expires, promo_contents):
+        promos = self.application.promos
+
+        promo_keys = to_int(promo_keys)
+
+        try:
+            promo_contents = json.loads(promo_contents)
+        except (KeyError, ValueError):
+            raise a.ActionError("Corrupted JSON")
+
+        result = []
+
+        for i in xrange(1, promo_keys):
+            promo_key = promos.random()
+
+            try:
+                promos.validate(promo_key)
+            except PromoError as e:
+                raise a.ActionError(e.message)
+
+            try:
+                yield promos.new_promo(self.gamespace, promo_key, promo_amount, promo_expires, promo_contents)
+            except ContentError as e:
+                continue
+            else:
+                result.append(promo_key)
+
+        raise a.Return({
+            "result": "\n".join(result)
+        })
 
 
 class PromoController(a.AdminController):

@@ -47,6 +47,7 @@ class PromoServer(common.server.Server):
             "new_content": admin.NewContentController,
             "promos": admin.PromosController,
             "new_promo": admin.NewPromoController,
+            "new_promos": admin.NewPromosController,
             "promo": admin.PromoController
         }
 
