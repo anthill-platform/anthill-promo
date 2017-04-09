@@ -139,62 +139,72 @@ class PromoModel(Model):
     @coroutine
     def use_promo(self, gamespace_id, account_id, promo_key):
         with (yield self.db.acquire(auto_commit=False)) as db:
-            promo = yield db.get("""
-                SELECT `code_id`, `code_contents`, `code_amount`
-                FROM `promo_code`
-                WHERE `code_key`=%s AND `gamespace_id`=%s AND `code_amount` > 0 AND `code_expires` > NOW()
-                FOR UPDATE;
-            """, promo_key, gamespace_id)
+            try:
+                promo = yield db.get(
+                    """
+                        SELECT `code_id`, `code_contents`, `code_amount`
+                        FROM `promo_code`
+                        WHERE `code_key`=%s AND `gamespace_id`=%s AND `code_amount` > 0 AND `code_expires` > NOW()
+                        FOR UPDATE;
+                    """, promo_key, gamespace_id)
 
-            if not promo:
+                if not promo:
+                    raise PromoNotFound()
+
+                promo_id = promo["code_id"]
+                promo_contents = promo["code_contents"]
+                promo_amount = promo["code_amount"]
+
+                ids = promo_contents.keys()
+
+                if not ids:
+                    raise PromoError("Promo code has no contents.")
+
+                used = yield db.get(
+                    """
+                        SELECT *
+                        FROM `promo_code_users`
+                        WHERE `code_id`=%s AND `gamespace_id`=%s AND `account_id`=%s;
+                    """, promo_id, gamespace_id, account_id)
+
+                if used:
+                    raise PromoError("Code already used by this user")
+
+                yield db.insert(
+                    """
+                        INSERT INTO `promo_code_users`
+                        (`gamespace_id`, `code_id`, `account_id`)
+                        VALUES (%s, %s, %s);
+                    """, gamespace_id, promo_id, account_id)
+
+                promo_amount -= 1
+
+                yield db.execute(
+                    """
+                        UPDATE `promo_code`
+                        SET `code_amount` = %s
+                        WHERE `code_id`=%s AND `gamespace_id`=%s;
+                    """, promo_amount, promo_id, gamespace_id)
+
+                contents_result = []
+
+                contents = yield db.query(
+                    """
+                        SELECT `content_json`, `content_id`
+                        FROM `promo_contents`
+                        WHERE `content_id` IN %s
+                    """, ids)
+
+                for cnt in contents:
+                    result = {
+                        "payload": cnt["content_json"],
+                        "amount": promo_contents[str(cnt["content_id"])]
+                    }
+                    contents_result.append(result)
+
+                raise Return({
+                    "result": contents_result
+                })
+
+            finally:
                 yield db.commit()
-                raise PromoNotFound()
-
-            promo_id = promo["code_id"]
-            promo_contents = promo["code_contents"]
-            promo_amount = promo["code_amount"]
-
-            used = yield db.get("""
-                SELECT *
-                FROM `promo_code_users`
-                WHERE `code_id`=%s AND `gamespace_id`=%s AND `account_id`=%s;
-            """, promo_id, gamespace_id, account_id)
-
-            if used:
-                yield db.commit()
-                raise PromoError("Code already used by this user")
-
-            yield db.insert("""
-                INSERT INTO `promo_code_users`
-                (`gamespace_id`, `code_id`, `account_id`)
-                VALUES (%s, %s, %s);
-            """, gamespace_id, promo_id, account_id)
-
-            promo_amount -= 1
-
-            yield db.execute("""
-                UPDATE `promo_code`
-                SET `code_amount` = %s
-                WHERE `code_id`=%s AND `gamespace_id`=%s;
-            """, promo_amount, promo_id, gamespace_id)
-            yield db.commit()
-
-            ids = promo_contents.keys()
-            contents_result = []
-
-            contents = yield db.query("""
-                SELECT `content_json`, `content_id`
-                FROM `promo_contents`
-                WHERE `content_id` IN (%s)
-            """, ",".join(ids))
-
-            for cnt in contents:
-                result = {
-                    "payload": cnt["content_json"],
-                    "amount": promo_contents[str(cnt["content_id"])]
-                }
-                contents_result.append(result)
-
-            raise Return({
-                "result": contents_result
-            })
