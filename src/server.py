@@ -39,6 +39,9 @@ class PromoServer(common.server.Server):
             (r"/use/(.*)", h.UsePromoHandler),
         ]
 
+    def get_internal_handler(self):
+        return h.InternalHandler(self)
+
     def get_admin(self):
         return {
             "index": admin.RootAdminController,

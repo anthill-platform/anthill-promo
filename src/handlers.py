@@ -1,14 +1,16 @@
 # coding=utf-8
 
-from tornado.gen import coroutine
+from tornado.gen import coroutine, Return
 from tornado.web import HTTPError
 
 from common.access import scoped, AccessToken
 from common.handler import AuthenticatedHandler
+from common.validate import validate
+from common.internal import InternalError
 
 import ujson
 
-from model.promo import PromoNotFound, PromoError
+from model.promo import PromoNotFound, PromoError, PromoExists
 
 __author__ = 'desertkun'
 
@@ -32,3 +34,31 @@ class UsePromoHandler(AuthenticatedHandler):
             raise HTTPError(404, e.message)
         else:
             self.dumps(promo_usage)
+
+
+class InternalHandler(object):
+    def __init__(self, application):
+        self.application = application
+
+    @coroutine
+    @validate(gamespace="int", amount="int", expires="load_datetime", contents="json_dict")
+    def generate_code(self, gamespace, amount, expires, contents):
+
+        promos = self.application.promos
+
+        contents = yield promos.wrap_contents(gamespace, contents)
+
+        while True:
+            promo_key = promos.random()
+
+            try:
+                yield promos.new_promo(
+                    gamespace, promo_key, amount, expires, contents)
+            except PromoExists:
+                continue
+            except PromoError as e:
+                raise InternalError(500, "Failed to create new promo: " + e.args[0])
+            else:
+                raise Return({
+                    "key": promo_key
+                })

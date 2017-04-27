@@ -1,6 +1,6 @@
 
 from tornado.gen import coroutine, Return
-from common.database import DatabaseError
+from common.database import DatabaseError, DuplicateError
 from common.model import Model
 
 import ujson
@@ -13,6 +13,10 @@ class PromoError(Exception):
 
 
 class PromoNotFound(Exception):
+    pass
+
+
+class PromoExists(PromoError):
     pass
 
 
@@ -39,6 +43,25 @@ class PromoModel(Model):
             raise PromoError("Promo code is not valid (should be XXXX-XXXX-XXXX)")
 
     @coroutine
+    def wrap_contents(self, gamespace_id, contents):
+        keys = contents.keys()
+
+        try:
+            wrapped = yield self.db.query("""
+                SELECT * FROM `promo_contents`
+                WHERE `gamespace_id`=%s AND  `content_name` IN %s;
+            """, gamespace_id, keys)
+        except DatabaseError as e:
+            raise PromoError("Failed to wrap contents: " + e.args[1])
+
+        result = {
+            str(item["content_id"]): contents[item["content_name"]]
+            for item in wrapped
+        }
+
+        raise Return(result)
+
+    @coroutine
     def new_promo(self, gamespace_id, promo_key, promo_use_amount, promo_expires, promo_contents):
 
         if not isinstance(promo_contents, dict):
@@ -57,6 +80,8 @@ class PromoModel(Model):
                 (`gamespace_id`, `code_key`, `code_amount`, `code_expires`, `code_contents`)
                 VALUES (%s, %s, %s, %s, %s);
             """, gamespace_id, promo_key, promo_use_amount, promo_expires, ujson.dumps(promo_contents))
+        except DuplicateError:
+            raise PromoExists()
         except DatabaseError as e:
             raise PromoError("Failed to add new promo code: " + e.args[1])
 
