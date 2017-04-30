@@ -332,7 +332,7 @@ class NewPromosController(a.AdminController):
 
         result = []
 
-        for i in xrange(1, promo_keys):
+        for i in xrange(0, promo_keys):
             promo_key = promos.random()
 
             try:

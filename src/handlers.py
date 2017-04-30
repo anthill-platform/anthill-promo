@@ -41,24 +41,30 @@ class InternalHandler(object):
         self.application = application
 
     @coroutine
-    @validate(gamespace="int", amount="int", expires="load_datetime", contents="json_dict")
-    def generate_code(self, gamespace, amount, expires, contents):
+    @validate(gamespace="int", amount="int", codes_count="int", expires="load_datetime", contents="json_dict")
+    def generate_code(self, gamespace, amount, expires, contents, codes_count=1):
 
         promos = self.application.promos
 
         contents = yield promos.wrap_contents(gamespace, contents)
 
-        while True:
-            promo_key = promos.random()
+        keys = []
 
-            try:
-                yield promos.new_promo(
-                    gamespace, promo_key, amount, expires, contents)
-            except PromoExists:
-                continue
-            except PromoError as e:
-                raise InternalError(500, "Failed to create new promo: " + e.args[0])
-            else:
-                raise Return({
-                    "key": promo_key
-                })
+        for i in xrange(0, codes_count):
+            while True:
+                promo_key = promos.random()
+
+                try:
+                    yield promos.new_promo(
+                        gamespace, promo_key, amount, expires, contents)
+                except PromoExists:
+                    continue
+                except PromoError as e:
+                    raise InternalError(500, "Failed to create new promo: " + e.args[0])
+                else:
+                    keys.append(promo_key)
+                    break
+
+        raise Return({
+            "keys": keys
+        })
