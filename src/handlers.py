@@ -41,7 +41,7 @@ class InternalHandler(object):
         self.application = application
 
     @coroutine
-    @validate(gamespace="int", amount="int", codes_count="int", expires="load_datetime", contents="json_dict")
+    @validate(gamespace="int", amount="int", codes_count="int", expires="datetime", contents="json_dict")
     def generate_code(self, gamespace, amount, expires, contents, codes_count=1):
 
         promos = self.application.promos
