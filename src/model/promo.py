@@ -9,14 +9,19 @@ import random
 
 
 class PromoError(Exception):
-    pass
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
+
+    def __str__(self):
+        return str(self.code) + ": " + self.message
 
 
 class PromoNotFound(Exception):
     pass
 
 
-class PromoExists(PromoError):
+class PromoExists(Exception):
     pass
 
 
@@ -40,7 +45,7 @@ class PromoModel(Model):
 
     def validate(self, code):
         if not re.match(PromoModel.PROMO_PATTERN, code):
-            raise PromoError("Promo code is not valid (should be XXXX-XXXX-XXXX)")
+            raise PromoError(400, "Promo code is not valid (should be XXXX-XXXX-XXXX)")
 
     @coroutine
     def wrap_contents(self, gamespace_id, contents):
@@ -52,7 +57,7 @@ class PromoModel(Model):
                 WHERE `gamespace_id`=%s AND  `content_name` IN %s;
             """, gamespace_id, keys)
         except DatabaseError as e:
-            raise PromoError("Failed to wrap contents: " + e.args[1])
+            raise PromoError(500, "Failed to wrap contents: " + e.args[1])
 
         result = {
             str(item["content_id"]): contents[item["content_name"]]
@@ -65,14 +70,14 @@ class PromoModel(Model):
     def new_promo(self, gamespace_id, promo_key, promo_use_amount, promo_expires, promo_contents):
 
         if not isinstance(promo_contents, dict):
-            raise PromoError("Contents is not a dict")
+            raise PromoError(400, "Contents is not a dict")
 
         try:
             yield self.find_promo(gamespace_id, promo_key)
         except PromoNotFound:
             pass
         else:
-            raise PromoError("Promo code '{0}' already exists.".format(promo_key))
+            raise PromoError(409, "Promo code '{0}' already exists.".format(promo_key))
 
         try:
             result = yield self.db.insert("""
@@ -83,7 +88,7 @@ class PromoModel(Model):
         except DuplicateError:
             raise PromoExists()
         except DatabaseError as e:
-            raise PromoError("Failed to add new promo code: " + e.args[1])
+            raise PromoError(500, "Failed to add new promo code: " + e.args[1])
 
         raise Return(result)
 
@@ -96,7 +101,7 @@ class PromoModel(Model):
                 WHERE `code_key`=%s AND `gamespace_id`=%s;
             """, promo_key, gamespace_id)
         except DatabaseError as e:
-            raise PromoError("Failed to find promo code: " + e.args[1])
+            raise PromoError(500, "Failed to find promo code: " + e.args[1])
 
         if result is None:
             raise PromoNotFound()
@@ -112,7 +117,7 @@ class PromoModel(Model):
                 WHERE `code_id`=%s AND `gamespace_id`=%s;
             """, promo_id, gamespace_id)
         except DatabaseError as e:
-            raise PromoError("Failed to get promo code: " + e.args[1])
+            raise PromoError(500, "Failed to get promo code: " + e.args[1])
 
         if result is None:
             raise PromoNotFound()
@@ -134,13 +139,13 @@ class PromoModel(Model):
                 WHERE `code_id`=%s AND `gamespace_id`=%s;
             """, promo_id, gamespace_id)
         except DatabaseError as e:
-            raise PromoError("Failed to delete content: " + e.args[1])
+            raise PromoError(500, "Failed to delete content: " + e.args[1])
 
     @coroutine
     def update_promo(self, gamespace_id, promo_id, promo_key, promo_use_amount, promo_expires, promo_contents):
 
         if not isinstance(promo_contents, dict):
-            raise PromoError("Contents is not a dict")
+            raise PromoError(400, "Contents is not a dict")
 
         try:
             yield self.db.execute("""
@@ -149,7 +154,7 @@ class PromoModel(Model):
                 WHERE `code_id`=%s AND `gamespace_id`=%s;
             """, promo_key, promo_use_amount, promo_expires, ujson.dumps(promo_contents), promo_id, gamespace_id)
         except DatabaseError as e:
-            raise PromoError("Failed to update content: " + e.args[1])
+            raise PromoError(500, "Failed to update content: " + e.args[1])
 
     @coroutine
     def get_promo_usages(self, gamespace_id, promo_id):
@@ -183,7 +188,7 @@ class PromoModel(Model):
                 ids = promo_contents.keys()
 
                 if not ids:
-                    raise PromoError("Promo code has no contents.")
+                    raise PromoError(400, "Promo code has no contents.")
 
                 used = yield db.get(
                     """
@@ -193,7 +198,7 @@ class PromoModel(Model):
                     """, promo_id, gamespace_id, account_id)
 
                 if used:
-                    raise PromoError("Code already used by this user")
+                    raise PromoError(409, "Code already used by this user")
 
                 yield db.insert(
                     """
