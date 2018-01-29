@@ -5,5 +5,6 @@ CREATE TABLE `promo_code` (
   `code_amount` int(11) NOT NULL DEFAULT '1',
   `code_expires` datetime NOT NULL,
   `code_contents` json NOT NULL,
-  PRIMARY KEY (`code_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`code_id`),
+  UNIQUE KEY `gamespace_id` (`gamespace_id`,`code_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

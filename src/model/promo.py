@@ -25,6 +25,15 @@ class PromoExists(Exception):
     pass
 
 
+class PromoAdapter(object):
+    def __init__(self, data):
+        self.code_id = str(data.get("code_id"))
+        self.key = data.get("code_key")
+        self.expires = data.get("code_expires")
+        self.contents = data.get("code_contents")
+        self.amount = data.get("code_amount")
+
+
 class PromoModel(Model):
     PROMO_PATTERN = re.compile("[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}")
 
@@ -106,7 +115,7 @@ class PromoModel(Model):
         if result is None:
             raise PromoNotFound()
 
-        raise Return(result)
+        raise Return(PromoAdapter(result))
 
     @coroutine
     def get_promo(self, gamespace_id, promo_id):
@@ -122,7 +131,7 @@ class PromoModel(Model):
         if result is None:
             raise PromoNotFound()
 
-        raise Return(result)
+        raise Return(PromoAdapter(result))
 
     @coroutine
     def delete_promo(self, gamespace_id, promo_id):

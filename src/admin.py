@@ -32,7 +32,7 @@ class ContentsController(a.AdminController):
         return [
             a.breadcrumbs([], "Contents"),
             a.links("Items", [
-                a.link("content", item["content_name"], icon="paper-plane", content_id=item["content_id"])
+                a.link("content", item.name, icon="paper-plane", content_id=item.content_id)
                 for item in data["items"]
             ]),
             a.links("Navigate", [
@@ -85,8 +85,8 @@ class ContentController(a.AdminController):
             raise a.ActionError("No such content")
 
         result = {
-            "content_name": content["content_name"],
-            "content_json": content["content_json"]
+            "content_name": content.name,
+            "content_json": content.payload
         }
 
         raise a.Return(result)
@@ -203,7 +203,7 @@ class PromosController(a.AdminController):
         except PromoNotFound:
             raise a.ActionError("No such promo code")
 
-        raise a.Redirect("promo", promo_id=promo["code_id"])
+        raise a.Redirect("promo", promo_id=promo.code_id)
 
 
 class NewPromoController(a.AdminController):
@@ -233,8 +233,10 @@ class NewPromoController(a.AdminController):
     def get(self):
 
         contents = self.application.contents
-        content_items = {item["content_id"]: item["content_name"]
-                         for item in (yield contents.list_contents(self.gamespace))}
+        content_items = {
+            item.content_id: item.name
+            for item in (yield contents.list_contents(self.gamespace))
+        }
 
         raise a.Return({
             "promo_key": "<random>",
@@ -309,8 +311,10 @@ class NewPromosController(a.AdminController):
     def get(self):
 
         contents = self.application.contents
-        content_items = {item["content_id"]: item["content_name"]
-                         for item in (yield contents.list_contents(self.gamespace))}
+        content_items = {
+            item.content_id: item.name
+            for item in (yield contents.list_contents(self.gamespace))
+        }
 
         raise a.Return({
             "promo_keys": "2",
@@ -383,8 +387,10 @@ class PromoController(a.AdminController):
 
         promos = self.application.promos
         contents = self.application.contents
-        content_items = {item["content_id"]: item["content_name"]
-                         for item in (yield contents.list_contents(self.gamespace))}
+        content_items = {
+            item.content_id: item.name
+            for item in (yield contents.list_contents(self.gamespace))
+        }
 
         try:
             promo = yield promos.get_promo(self.gamespace, promo_id)

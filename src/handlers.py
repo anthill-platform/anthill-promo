@@ -79,3 +79,60 @@ class InternalHandler(object):
             raise InternalError(404, e.message)
         else:
             raise Return(promo_usage)
+
+    @coroutine
+    @validate(gamespace="int")
+    def list_contents(self, gamespace):
+
+        contents = self.application.contents
+
+        try:
+            items = yield contents.list_contents(gamespace)
+        except PromoError as e:
+            raise InternalError(e.code, e.message)
+        except PromoNotFound as e:
+            raise InternalError(404, e.message)
+        else:
+            raise Return({
+                "items": {
+                    item.content_id: item.name
+                    for item in items
+                }
+            })
+
+    @coroutine
+    @validate(gamespace="int", promo_key="str")
+    def get_code_info(self, gamespace, promo_key):
+
+        promos = self.application.promos
+
+        try:
+            promo = yield promos.find_promo(gamespace, promo_key)
+        except PromoError as e:
+            raise InternalError(e.code, e.message)
+        except PromoNotFound as e:
+            raise InternalError(404, "No such promo code")
+        else:
+            raise Return({
+                "code": {
+                    "expires": str(promo.expires),
+                    "id": promo.code_id,
+                    "contents": promo.contents,
+                    "amount": promo.amount,
+                }
+            })
+
+    @coroutine
+    @validate(gamespace="int", code_id="int")
+    def list_code_users(self, gamespace, code_id):
+
+        promos = self.application.promos
+
+        try:
+            users = yield promos.get_promo_usages(gamespace, code_id)
+        except PromoError as e:
+            raise InternalError(e.code, e.message)
+        else:
+            raise Return({
+                "users": users
+            })
