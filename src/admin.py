@@ -403,11 +403,11 @@ class PromoController(a.AdminController):
             raise a.ActionError(e.message)
 
         result = {
-            "promo_code": promo["code_key"],
-            "promo_amount": promo["code_amount"],
-            "promo_contents": promo["code_contents"],
+            "promo_code": promo.key,
+            "promo_amount": promo.amount,
+            "promo_contents": promo.contents,
             "content_items": content_items,
-            "promo_expires": str(promo["code_expires"]),
+            "promo_expires": str(promo.expires),
             "usages": usages
         }
 
