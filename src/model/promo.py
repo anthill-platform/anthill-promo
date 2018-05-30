@@ -56,6 +56,27 @@ class PromoModel(Model):
         if not re.match(PromoModel.PROMO_PATTERN, code):
             raise PromoError(400, "Promo code is not valid (should be XXXX-XXXX-XXXX)")
 
+    def has_delete_account_event(self):
+        return True
+
+    @coroutine
+    def accounts_deleted(self, gamespace, accounts, gamespace_only):
+        try:
+            if gamespace_only:
+                yield self.db.execute(
+                    """
+                        DELETE FROM `promo_code_users`
+                        WHERE `gamespace_id`=%s AND `account_id` IN %s;
+                    """, gamespace, accounts)
+            else:
+                yield self.db.execute(
+                    """
+                        DELETE FROM `promo_code_users`
+                        WHERE `account_id` IN %s;
+                    """, accounts)
+        except DatabaseError as e:
+            raise PromoError(500, "Failed to delete promo code usages: " + e.args[1])
+
     @coroutine
     def wrap_contents(self, gamespace_id, contents):
         keys = contents.keys()
