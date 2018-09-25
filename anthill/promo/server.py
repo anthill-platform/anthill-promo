@@ -1,28 +1,21 @@
 
-import handlers as h
+from anthill.common.options import options
+from anthill.common import server, database, access
 
-from common.options import options
-import options as _opts
+from . import handlers as h
+# noinspection PyUnresolvedReferences
+from . import options as _opts
+from . import admin
 
-import common.server
-import common.database
-import common.access
-import common.sign
-import common.keyvalue
-
-import admin
-
-from model.content import ContentModel
-from model.promo import PromoModel
-
-__author__ = 'desertkun'
+from . model.content import ContentModel
+from . model.promo import PromoModel
 
 
-class PromoServer(common.server.Server):
+class PromoServer(server.Server):
     def __init__(self):
         super(PromoServer, self).__init__()
 
-        self.db = common.database.Database(
+        self.db = database.Database(
             host=options.db_host,
             database=options.db_name,
             user=options.db_username,
@@ -61,7 +54,8 @@ class PromoServer(common.server.Server):
             "icon": "gift"
         }
 
+
 if __name__ == "__main__":
-    stt = common.server.init()
-    common.access.AccessToken.init([common.access.public()])
-    common.server.start(PromoServer)
+    stt = server.init()
+    access.AccessToken.init([access.public()])
+    server.start(PromoServer)

@@ -1,8 +1,6 @@
 
-from tornado.gen import coroutine, Return
-
-from common.database import DatabaseError, DuplicateError
-from common.model import Model
+from anthill.common.database import DatabaseError, DuplicateError
+from anthill.common.model import Model
 import ujson
 
 
@@ -31,11 +29,10 @@ class ContentModel(Model):
     def get_setup_db(self):
         return self.db
 
-    @coroutine
-    def new_content(self, gamespace_id, content_name, content_data):
+    async def new_content(self, gamespace_id, content_name, content_data):
 
         try:
-            result = yield self.db.insert("""
+            result = await self.db.insert("""
                 INSERT INTO `promo_contents`
                 (`gamespace_id`, `content_name`, `content_json`)
                 VALUES (%s, %s, %s);
@@ -45,12 +42,11 @@ class ContentModel(Model):
         except DatabaseError as e:
             raise ContentError("Failed to add new content: " + e.args[1])
 
-        raise Return(result)
+        return result
 
-    @coroutine
-    def find_content(self, gamespace_id, content_name):
+    async def find_content(self, gamespace_id, content_name):
         try:
-            result = yield self.db.get("""
+            result = await self.db.get("""
                 SELECT *
                 FROM `promo_contents`
                 WHERE `content_name`=%s AND `gamespace_id`=%s
@@ -62,12 +58,11 @@ class ContentModel(Model):
         if result is None:
             raise ContentNotFound()
 
-        raise Return(ContentAdapter(result))
+        return ContentAdapter(result)
 
-    @coroutine
-    def get_content(self, gamespace_id, content_id):
+    async def get_content(self, gamespace_id, content_id):
         try:
-            result = yield self.db.get("""
+            result = await self.db.get("""
                 SELECT *
                 FROM `promo_contents`
                 WHERE `content_id`=%s AND `gamespace_id`=%s
@@ -79,12 +74,11 @@ class ContentModel(Model):
         if result is None:
             raise ContentNotFound()
 
-        raise Return(ContentAdapter(result))
+        return ContentAdapter(result)
 
-    @coroutine
-    def delete_content(self, gamespace_id, content_id):
+    async def delete_content(self, gamespace_id, content_id):
         try:
-            yield self.db.execute("""
+            await self.db.execute("""
                 DELETE
                 FROM `promo_contents`
                 WHERE `content_id`=%s AND `gamespace_id`=%s
@@ -93,10 +87,9 @@ class ContentModel(Model):
         except DatabaseError as e:
             raise ContentError("Failed to delete content: " + e.args[1])
 
-    @coroutine
-    def update_content(self, gamespace_id, content_id, content_name, content_data):
+    async def update_content(self, gamespace_id, content_id, content_name, content_data):
         try:
-            yield self.db.execute("""
+            await self.db.execute("""
                 UPDATE `promo_contents`
                 SET `content_name`=%s, `content_json`=%s
                 WHERE `content_id`=%s AND `gamespace_id`=%s;
@@ -104,10 +97,9 @@ class ContentModel(Model):
         except DatabaseError as e:
             raise ContentError("Failed to update content: " + e.args[1])
 
-    @coroutine
-    def list_contents(self, gamespace_id):
+    async def list_contents(self, gamespace_id):
         try:
-            contents = yield self.db.query("""
+            contents = await self.db.query("""
                 SELECT *
                 FROM `promo_contents`
                 WHERE `gamespace_id`=%s;
@@ -115,4 +107,4 @@ class ContentModel(Model):
         except DatabaseError as e:
             raise ContentError("Failed to list content: " + e.args[1])
 
-        raise Return(map(ContentAdapter, contents))
+        return map(ContentAdapter, contents)

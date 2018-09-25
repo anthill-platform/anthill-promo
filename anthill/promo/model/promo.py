@@ -1,7 +1,6 @@
 
-from tornado.gen import coroutine, Return
-from common.database import DatabaseError, DuplicateError
-from common.model import Model
+from anthill.common.database import DatabaseError, DuplicateError
+from anthill.common.model import Model
 
 import ujson
 import re
@@ -59,17 +58,16 @@ class PromoModel(Model):
     def has_delete_account_event(self):
         return True
 
-    @coroutine
-    def accounts_deleted(self, gamespace, accounts, gamespace_only):
+    async def accounts_deleted(self, gamespace, accounts, gamespace_only):
         try:
             if gamespace_only:
-                yield self.db.execute(
+                await self.db.execute(
                     """
                         DELETE FROM `promo_code_users`
                         WHERE `gamespace_id`=%s AND `account_id` IN %s;
                     """, gamespace, accounts)
             else:
-                yield self.db.execute(
+                await self.db.execute(
                     """
                         DELETE FROM `promo_code_users`
                         WHERE `account_id` IN %s;
@@ -77,12 +75,11 @@ class PromoModel(Model):
         except DatabaseError as e:
             raise PromoError(500, "Failed to delete promo code usages: " + e.args[1])
 
-    @coroutine
-    def wrap_contents(self, gamespace_id, contents):
+    async def wrap_contents(self, gamespace_id, contents):
         keys = contents.keys()
 
         try:
-            wrapped = yield self.db.query("""
+            wrapped = await self.db.query("""
                 SELECT * FROM `promo_contents`
                 WHERE `gamespace_id`=%s AND  `content_name` IN %s;
             """, gamespace_id, keys)
@@ -94,23 +91,22 @@ class PromoModel(Model):
             for item in wrapped
         }
 
-        raise Return(result)
+        return result
 
-    @coroutine
-    def new_promo(self, gamespace_id, promo_key, promo_use_amount, promo_expires, promo_contents):
+    async def new_promo(self, gamespace_id, promo_key, promo_use_amount, promo_expires, promo_contents):
 
         if not isinstance(promo_contents, dict):
             raise PromoError(400, "Contents is not a dict")
 
         try:
-            yield self.find_promo(gamespace_id, promo_key)
+            await self.find_promo(gamespace_id, promo_key)
         except PromoNotFound:
             pass
         else:
             raise PromoError(409, "Promo code '{0}' already exists.".format(promo_key))
 
         try:
-            result = yield self.db.insert("""
+            result = await self.db.insert("""
                 INSERT INTO `promo_code`
                 (`gamespace_id`, `code_key`, `code_amount`, `code_expires`, `code_contents`)
                 VALUES (%s, %s, %s, %s, %s);
@@ -120,12 +116,11 @@ class PromoModel(Model):
         except DatabaseError as e:
             raise PromoError(500, "Failed to add new promo code: " + e.args[1])
 
-        raise Return(result)
+        return result
 
-    @coroutine
-    def find_promo(self, gamespace_id, promo_key):
+    async def find_promo(self, gamespace_id, promo_key):
         try:
-            result = yield self.db.get("""
+            result = await self.db.get("""
                 SELECT *
                 FROM `promo_code`
                 WHERE `code_key`=%s AND `gamespace_id`=%s;
@@ -136,12 +131,11 @@ class PromoModel(Model):
         if result is None:
             raise PromoNotFound()
 
-        raise Return(PromoAdapter(result))
+        return PromoAdapter(result)
 
-    @coroutine
-    def get_promo(self, gamespace_id, promo_id):
+    async def get_promo(self, gamespace_id, promo_id):
         try:
-            result = yield self.db.get("""
+            result = await self.db.get("""
                 SELECT *
                 FROM `promo_code`
                 WHERE `code_id`=%s AND `gamespace_id`=%s;
@@ -152,18 +146,17 @@ class PromoModel(Model):
         if result is None:
             raise PromoNotFound()
 
-        raise Return(PromoAdapter(result))
+        return PromoAdapter(result)
 
-    @coroutine
-    def delete_promo(self, gamespace_id, promo_id):
+    async def delete_promo(self, gamespace_id, promo_id):
         try:
-            yield self.db.execute("""
+            await self.db.execute("""
                 DELETE
                 FROM `promo_code`
                 WHERE `code_id`=%s AND `gamespace_id`=%s;
             """, promo_id, gamespace_id)
 
-            yield self.db.execute("""
+            await self.db.execute("""
                 DELETE
                 FROM `promo_code_users`
                 WHERE `code_id`=%s AND `gamespace_id`=%s;
@@ -171,14 +164,13 @@ class PromoModel(Model):
         except DatabaseError as e:
             raise PromoError(500, "Failed to delete content: " + e.args[1])
 
-    @coroutine
-    def update_promo(self, gamespace_id, promo_id, promo_key, promo_use_amount, promo_expires, promo_contents):
+    async def update_promo(self, gamespace_id, promo_id, promo_key, promo_use_amount, promo_expires, promo_contents):
 
         if not isinstance(promo_contents, dict):
             raise PromoError(400, "Contents is not a dict")
 
         try:
-            yield self.db.execute("""
+            await self.db.execute("""
                 UPDATE `promo_code`
                 SET `code_key`=%s, `code_amount`=%s, `code_expires`=%s, `code_contents`=%s
                 WHERE `code_id`=%s AND `gamespace_id`=%s;
@@ -186,21 +178,19 @@ class PromoModel(Model):
         except DatabaseError as e:
             raise PromoError(500, "Failed to update content: " + e.args[1])
 
-    @coroutine
-    def get_promo_usages(self, gamespace_id, promo_id):
-        usages = yield self.db.query("""
+    async def get_promo_usages(self, gamespace_id, promo_id):
+        usages = await self.db.query("""
             SELECT `account_id`
             FROM `promo_code_users`
             WHERE `code_id`=%s AND `gamespace_id`=%s;
         """, promo_id, gamespace_id)
 
-        raise Return([str(usage["account_id"]) for usage in usages])
+        return [str(usage["account_id"]) for usage in usages]
 
-    @coroutine
-    def use_promo(self, gamespace_id, account_id, promo_key):
-        with (yield self.db.acquire(auto_commit=False)) as db:
+    async def use_promo(self, gamespace_id, account_id, promo_key):
+        async with self.db.acquire(auto_commit=False) as db:
             try:
-                promo = yield db.get(
+                promo = await db.get(
                     """
                         SELECT `code_id`, `code_contents`, `code_amount`
                         FROM `promo_code`
@@ -220,7 +210,7 @@ class PromoModel(Model):
                 if not ids:
                     raise PromoError(400, "Promo code has no contents.")
 
-                used = yield db.get(
+                used = await db.get(
                     """
                         SELECT *
                         FROM `promo_code_users`
@@ -230,7 +220,7 @@ class PromoModel(Model):
                 if used:
                     raise PromoError(409, "Code already used by this user")
 
-                yield db.insert(
+                await db.insert(
                     """
                         INSERT INTO `promo_code_users`
                         (`gamespace_id`, `code_id`, `account_id`)
@@ -239,7 +229,7 @@ class PromoModel(Model):
 
                 promo_amount -= 1
 
-                yield db.execute(
+                await db.execute(
                     """
                         UPDATE `promo_code`
                         SET `code_amount` = %s
@@ -248,7 +238,7 @@ class PromoModel(Model):
 
                 contents_result = []
 
-                contents = yield db.query(
+                contents = await db.query(
                     """
                         SELECT `content_json`, `content_id`
                         FROM `promo_contents`
@@ -262,9 +252,9 @@ class PromoModel(Model):
                     }
                     contents_result.append(result)
 
-                raise Return({
+                return {
                     "result": contents_result
-                })
+                }
 
             finally:
-                yield db.commit()
+                await db.commit()
