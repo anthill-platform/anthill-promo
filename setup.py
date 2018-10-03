@@ -7,6 +7,9 @@ DEPENDENCIES = [
 
 setup(
     name='anthill-promo',
+    package_data={
+      "anthill.promo": ["anthill/promo/sql", "anthill/promo/static"]
+    },
     setup_requires=["pypigit-version"],
     git_version="0.1.0",
     description='Promo codes service for Anthill platform',
