@@ -107,4 +107,4 @@ class ContentModel(Model):
         except DatabaseError as e:
             raise ContentError("Failed to list content: " + e.args[1])
 
-        return map(ContentAdapter, contents)
+        return list(map(ContentAdapter, contents))
