@@ -76,7 +76,7 @@ class PromoModel(Model):
             raise PromoError(500, "Failed to delete promo code usages: " + e.args[1])
 
     async def wrap_contents(self, gamespace_id, contents):
-        keys = contents.keys()
+        keys = list(contents.keys())
 
         try:
             wrapped = await self.db.query("""
@@ -205,7 +205,7 @@ class PromoModel(Model):
                 promo_contents = promo["code_contents"]
                 promo_amount = promo["code_amount"]
 
-                ids = promo_contents.keys()
+                ids = list(promo_contents.keys())
 
                 if not ids:
                     raise PromoError(400, "Promo code has no contents.")
