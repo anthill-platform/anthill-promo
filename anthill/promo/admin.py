@@ -119,8 +119,7 @@ class ContentController(a.AdminController):
         except ContentError as e:
             raise a.ActionError("Failed to delete content: " + e.args[0])
 
-        raise a.Redirect("contents",
-            message="Content has been deleted")
+        raise a.Redirect("contents", message="Content has been deleted")
 
 
 class NewContentController(a.AdminController):
@@ -229,12 +228,12 @@ class NewPromoController(a.AdminController):
             for item in (await contents.list_contents(self.gamespace))
         }
 
-        raise a.Return({
+        return {
             "promo_key": "<random>",
             "promo_amount": "1",
             "content_items": content_items,
             "promo_expires": str(datetime.datetime.now() + datetime.timedelta(days=30))
-        })
+        }
 
     async def create(self, promo_key, promo_amount, promo_expires, promo_contents):
         promos = self.application.promos
@@ -305,12 +304,12 @@ class NewPromosController(a.AdminController):
             for item in (await contents.list_contents(self.gamespace))
         }
 
-        raise a.Return({
+        return {
             "promo_keys": "2",
             "promo_amount": "1",
             "content_items": content_items,
             "promo_expires": str(datetime.datetime.now() + datetime.timedelta(days=30))
-        })
+        }
 
     async def create(self, promo_keys, promo_amount, promo_expires, promo_contents):
         promos = self.application.promos
@@ -334,14 +333,14 @@ class NewPromosController(a.AdminController):
 
             try:
                 await promos.new_promo(self.gamespace, promo_key, promo_amount, promo_expires, promo_contents)
-            except ContentError as e:
+            except ContentError:
                 continue
             else:
                 result.append(promo_key)
 
-        raise a.Return({
+        return {
             "result": "\n".join(result)
-        })
+        }
 
 
 class PromoController(a.AdminController):
